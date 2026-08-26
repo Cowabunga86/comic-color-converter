@@ -1094,6 +1094,19 @@ input[type=checkbox] {
             <input type="checkbox" id="p-manga" style="flex:none"> RTL (direita → esquerda)
           </label>
         </div>
+        <div class="param-row">
+          <label>Aparar margens</label>
+          <label style="display:flex;align-items:center;gap:6px;width:auto;color:var(--text)">
+            <input type="checkbox" id="p-trim" style="flex:none"> Cortar moldura branca
+          </label>
+        </div>
+        <div class="param-row">
+          <label>ComicInfo.xml</label>
+          <label style="display:flex;align-items:center;gap:6px;width:auto;color:var(--text)">
+            <input type="checkbox" id="p-meta" checked style="flex:none"> Usar série e autor
+          </label>
+          <span class="param-locked">padrão</span>
+        </div>
       </div>
     </div>
 
@@ -1149,6 +1162,8 @@ const S = {
     quality:      parseInt(document.getElementById('p-quality').value) || 90,
     spread_shift: document.getElementById('p-spread').checked,
     manga:        document.getElementById('p-manga').checked,
+    trim_margins: document.getElementById('p-trim').checked,
+    use_metadata: document.getElementById('p-meta').checked,
   }),
 };
 
@@ -1172,7 +1187,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   $('view-grid').addEventListener('click', () => setView('grid'));
 
   // salva os parâmetros sempre que mudarem
-  ['p-profile','p-format','p-quality','p-spread','p-manga'].forEach(id =>
+  ['p-profile','p-format','p-quality','p-spread','p-manga','p-trim','p-meta'].forEach(id =>
     $(id).addEventListener('change', saveSettings));
   $('out-path').addEventListener('change', saveSettings);
 });
@@ -1211,6 +1226,8 @@ async function restoreSettings() {
     if (p.quality) $('p-quality').value = p.quality;
     if (typeof p.spread_shift === 'boolean') $('p-spread').checked = p.spread_shift;
     if (typeof p.manga        === 'boolean') $('p-manga').checked  = p.manga;
+    if (typeof p.trim_margins === 'boolean') $('p-trim').checked   = p.trim_margins;
+    if (typeof p.use_metadata === 'boolean') $('p-meta').checked   = p.use_metadata;
 
     if (d.src_path) {
       $('src-path').value = d.src_path;
