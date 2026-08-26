@@ -2,6 +2,9 @@
 
 ## 1.1.0 — 26/08/2026
 
+Projeto renomeado para **Comic Color Converter**, deixando as marcas de terceiros
+apenas na descrição de compatibilidade, e não no nome do produto.
+
 Revisão completa do código, com todas as correções verificadas contra o caso que falhava.
 
 ### Correções

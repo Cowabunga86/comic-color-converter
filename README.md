@@ -1,4 +1,4 @@
-# Biblioteca Colorsoft Converter
+# Comic Color Converter
 
 Converte quadrinhos em **CBR, CBZ, CB7 e PDF** para **EPUB otimizado para o Kindle Colorsoft** — sem enviar nada para a nuvem e sem depender de ferramentas externas de conversão.
 
@@ -88,3 +88,7 @@ O servidor aceita apenas conexões de `localhost` e recusa requisições vindas 
 ## Licença
 
 MIT — veja [LICENSE](LICENSE).
+
+## Marcas
+
+Kindle, Kindle Colorsoft, Paperwhite, Voyage e Oasis são marcas da Amazon.com, Inc. Kobo é marca da Rakuten Kobo Inc. Este projeto é independente e não possui vínculo, patrocínio ou aprovação dessas empresas — os nomes aparecem apenas para indicar com quais aparelhos os arquivos gerados são compatíveis.
