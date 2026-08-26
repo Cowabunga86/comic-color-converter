@@ -1,5 +1,5 @@
 """
-Biblioteca Colorsoft Converter — backend local
+Comic Color Converter — backend local
 Roda em http://localhost:5432
 """
 from __future__ import annotations
@@ -257,7 +257,7 @@ def thumb():
 def kcc_info():
     profiles = [{'id': k, 'label': v['name']} for k, v in PROFILES.items()]
     return jsonify({
-        'version':  f'Biblioteca Colorsoft Converter v{CONVERTER_VERSION}',
+        'version':  f'Comic Color Converter v{CONVERTER_VERSION}',
         'profiles': profiles,
     })
 
@@ -400,6 +400,6 @@ def index():
 if __name__ == '__main__':
     import webbrowser
     PORT = 5432
-    print(f'\n  ◆ Biblioteca Colorsoft Converter v{CONVERTER_VERSION}  →  http://localhost:{PORT}\n')
+    print(f'\n  ◆ Comic Color Converter v{CONVERTER_VERSION}  →  http://localhost:{PORT}\n')
     webbrowser.open(f'http://localhost:{PORT}')
     app.run(host='127.0.0.1', port=PORT, debug=False, threaded=True)

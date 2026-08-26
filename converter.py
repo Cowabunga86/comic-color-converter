@@ -1,5 +1,5 @@
 """
-Biblioteca Colorsoft Converter — motor de conversão próprio para Kindle
+Comic Color Converter — motor de conversão próprio para e-readers
 Formatos de entrada : CBZ, PDF, CBR (requer rarfile+unrar), CB7 (requer py7zr)
 Formato de saída    : EPUB 3 (pre-paginated, compatível com Kindle)
 """
