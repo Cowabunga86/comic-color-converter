@@ -46,6 +46,8 @@ O programa lembra a última pasta e os ajustes, então nas próximas vezes ele j
 ## Recursos
 
 - **Capa correta** — declarada como `cover-image` no OPF, então o Kindle gera a miniatura na biblioteca
+- **Metadados do `ComicInfo.xml`** — título, série, autor e ano quando o arquivo os traz, com a série declarada como coleção para os volumes aparecerem agrupados
+- **Aparar margens** (opcional) — corta a moldura branca de scan para a arte ocupar a tela inteira, com proteções contra cortar página sangrada
 - **Páginas duplas** — detectadas e divididas em duas, com modo mangá (direita → esquerda)
 - **Miniaturas** — a capa de cada arquivo já convertido aparece na lista e em modo galeria
 - **Conversão em lote** com progresso em tempo real e cancelamento
@@ -84,6 +86,8 @@ O programa lembra a última pasta e os ajustes, então nas próximas vezes ele j
 O EPUB gerado é **EPUB 3 pre-paginated**: cada página é uma imagem em tela cheia, com `rendition:layout` fixo e `page-progression-direction` respeitando o modo mangá. As imagens vão para o ZIP sem recompressão (JPEG já é comprimido), e o OPF é escrito por último, o que permite processar página a página sem carregar o livro inteiro na memória — um álbum de 80 páginas em alta resolução usa cerca de 60 MB.
 
 O servidor aceita apenas conexões de `localhost` e recusa requisições vindas de outras origens.
+
+O recorte de margens deduz a cor de fundo pelos quatro cantos e só age quando ela é quase branca ou quase preta, os cantos concordam entre si, e o corte preserva ao menos metade de cada dimensão — três travas que existem para que uma splash page sangrada nunca seja cortada no meio da arte.
 
 ## Licença
 

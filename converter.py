@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Iterator
 from uuid import uuid4
 
-VERSION = '1.1.0'
+VERSION = '1.2.0'
 
 # ── Dependências opcionais ────────────────────────────────────────────────────
 try:
@@ -247,6 +247,100 @@ def extract_images(path: Path) -> Iterator[tuple[str, bytes]]:
         raise ValueError(f'Formato não suportado: {ext}')
 
 
+# ── Metadados (ComicInfo.xml) ─────────────────────────────────────────────────
+
+_COMICINFO = 'comicinfo.xml'
+
+
+def _raw_comicinfo(path: Path) -> bytes | None:
+    """Devolve o ComicInfo.xml de dentro do arquivo, se houver."""
+    ext = path.suffix.lower()
+    try:
+        if ext in ('.cbz', '.zip'):
+            with zipfile.ZipFile(path) as zf:
+                for n in zf.namelist():
+                    if n.lower().split('/')[-1] == _COMICINFO:
+                        return zf.read(n)
+
+        elif ext in ('.cb7', '.7z') and SEVENZ_OK:
+            with py7zr.SevenZipFile(path, mode='r') as z:
+                alvo = [n for n in z.getnames()
+                        if n.lower().split('/')[-1] == _COMICINFO]
+                if alvo:
+                    return z.read(alvo)[alvo[0]].read()
+
+        elif ext == '.cbr':
+            if RAR_OK and UNRAR_PATH:
+                with rarfile.RarFile(path) as rf:
+                    for n in rf.namelist():
+                        if n.lower().split('/')[-1] == _COMICINFO:
+                            return rf.read(n)
+            elif SEVENZIP_PATH:
+                # extrai apenas o ComicInfo.xml, sem descompactar o volume inteiro
+                with _tempfile.TemporaryDirectory(prefix='ci_') as tmp:
+                    _subprocess.run(
+                        [SEVENZIP_PATH, 'e', str(path), f'-o{tmp}',
+                         'ComicInfo.xml', '-r', '-y', '-bso0', '-bsp0'],
+                        stdout=_subprocess.PIPE, stderr=_subprocess.PIPE,
+                        creationflags=getattr(_subprocess, 'CREATE_NO_WINDOW', 0),
+                    )
+                    for p in Path(tmp).rglob('*'):
+                        if p.is_file() and p.name.lower() == _COMICINFO:
+                            return p.read_bytes()
+    except Exception:
+        pass          # metadado é bônus — nunca deve derrubar a conversão
+    return None
+
+
+def _tag(xml: str, nome: str) -> str | None:
+    m = re.search(rf'<{nome}>(.*?)</{nome}>', xml, re.DOTALL | re.IGNORECASE)
+    if not m:
+        return None
+    valor = re.sub(r'<[^>]+>', '', m.group(1)).strip()
+    # o XML já vem escapado; sem desfazer aqui, o & viraria &amp;amp; no OPF
+    return html.unescape(valor) or None
+
+
+def read_comicinfo(path: Path) -> dict:
+    """
+    Lê o ComicInfo.xml e devolve os campos que interessam para o EPUB.
+    Devolve {} quando não houver metadado — o nome do arquivo continua valendo.
+    """
+    raw = _raw_comicinfo(path)
+    if not raw:
+        return {}
+    try:
+        xml = raw.decode('utf-8-sig', 'replace')
+    except Exception:
+        return {}
+
+    meta: dict = {}
+    for chave, tag in (('series', 'Series'), ('number', 'Number'),
+                       ('volume', 'Volume'), ('title', 'Title'),
+                       ('writer', 'Writer'), ('penciller', 'Penciller'),
+                       ('year', 'Year'), ('language', 'LanguageISO'),
+                       ('summary', 'Summary'), ('manga', 'Manga')):
+        v = _tag(xml, tag)
+        if v:
+            meta[chave] = v
+    return meta
+
+
+def _titulo_de(meta: dict, fallback: str) -> str:
+    """Monta o título do EPUB: 'Série #Número — Título', com o que existir."""
+    serie = meta.get('series')
+    if not serie:
+        return meta.get('title') or fallback
+
+    partes = [serie]
+    if meta.get('number'):
+        partes.append(f"#{meta['number']}")
+    titulo = ' '.join(partes)
+    if meta.get('title') and meta['title'].lower() != serie.lower():
+        titulo += f" — {meta['title']}"
+    return titulo
+
+
 # ── Processamento de imagem ───────────────────────────────────────────────────
 
 def _resize_to_fit(img: 'Image.Image', max_w: int, max_h: int) -> 'Image.Image':
@@ -257,6 +351,52 @@ def _resize_to_fit(img: 'Image.Image', max_w: int, max_h: int) -> 'Image.Image':
     if abs(scale - 1.0) > 0.01:
         img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
     return img
+
+
+def _trim_margins(img: 'Image.Image', tolerancia: int = 14,
+                  folga: int = 3) -> 'Image.Image':
+    """
+    Corta a moldura uniforme em volta da arte (margem branca de scan, tarja preta).
+
+    A cor de fundo é deduzida dos quatro cantos. O corte só é aplicado se sobrar
+    pelo menos metade de cada dimensão — assim uma página escura, uma splash page
+    sangrada ou um fundo texturizado nunca são mutilados por uma detecção ruim.
+    """
+    from PIL import ImageChops
+
+    cinza = img.convert('L')
+    w, h = cinza.size
+    if w < 50 or h < 50:
+        return img
+
+    cantos = [cinza.getpixel((0, 0)),     cinza.getpixel((w - 1, 0)),
+              cinza.getpixel((0, h - 1)), cinza.getpixel((w - 1, h - 1))]
+    fundo = sorted(cantos)[1]          # mediana baixa: ignora um canto sujo
+
+    # Margem de verdade é papel branco ou tarja preta, e igual nos quatro cantos.
+    # Sem estas duas travas, um degradê sangrado passa pelo teste de área e é
+    # cortado no meio da arte — foi o que aconteceu antes delas existirem.
+    if not (fundo >= 230 or fundo <= 25):
+        return img
+    if max(cantos) - min(cantos) > 30:
+        return img
+
+    diff = ImageChops.difference(cinza, Image.new('L', cinza.size, fundo))
+    mascara = diff.point(lambda p: 255 if p > tolerancia else 0)
+    caixa = mascara.getbbox()
+    if not caixa:
+        return img                     # página inteira uniforme — não mexe
+
+    e, t, d, b = caixa
+    e = max(0, e - folga); t = max(0, t - folga)
+    d = min(w, d + folga); b = min(h, b + folga)
+
+    if (d - e) < w * 0.5 or (b - t) < h * 0.5:
+        return img                     # corte suspeito demais
+    if (d - e) == w and (b - t) == h:
+        return img                     # nada a cortar
+
+    return img.crop((e, t, d, b))
 
 
 def _is_spread(img: 'Image.Image') -> bool:
@@ -300,6 +440,10 @@ def process_image(raw: bytes, profile: dict, params: dict) -> list[tuple[bytes, 
     spread_shift = params.get('spread_shift', True)
     manga        = params.get('manga', False)
 
+    # antes de tudo: sem a moldura, a detecção de página dupla fica correta
+    if params.get('trim_margins', False):
+        img = _trim_margins(img)
+
     if spread_shift and _is_spread(img):
         p1, p2 = _split_spread(img, manga)
         results = []
@@ -329,10 +473,48 @@ _CONTAINER = '''\
 </container>'''
 
 
-def _build_opf(title: str, uid: str, n: int, manga: bool) -> str:
+def _meta_extra(meta: dict) -> str:
+    """
+    Metadados opcionais vindos do ComicInfo.xml.
+    A coleção é o que faz o Kindle agrupar a série na biblioteca — vai nos dois
+    formatos porque leitores diferentes leem um ou outro.
+    """
+    if not meta:
+        return ''
+    esc = lambda s: html.escape(str(s), quote=True)
+    linhas: list[str] = []
+
+    autor = meta.get('writer') or meta.get('penciller')
+    if autor:
+        linhas.append(f'<dc:creator>{esc(autor)}</dc:creator>')
+    if meta.get('year'):
+        linhas.append(f'<dc:date>{esc(meta["year"])}</dc:date>')
+    if meta.get('summary'):
+        linhas.append(f'<dc:description>{esc(meta["summary"])}</dc:description>')
+
+    if meta.get('series'):
+        serie = esc(meta['series'])
+        linhas.append(f'<meta property="belongs-to-collection" id="serie">{serie}</meta>')
+        linhas.append('<meta refines="#serie" property="collection-type">series</meta>')
+        if meta.get('number'):
+            linhas.append(
+                f'<meta refines="#serie" property="group-position">{esc(meta["number"])}</meta>')
+        # formato legado, entendido por Calibre e por vários leitores
+        linhas.append(f'<meta name="calibre:series" content="{serie}"/>')
+        if meta.get('number'):
+            linhas.append(
+                f'<meta name="calibre:series_index" content="{esc(meta["number"])}"/>')
+
+    return '\n    ' + '\n    '.join(linhas) if linhas else ''
+
+
+def _build_opf(title: str, uid: str, n: int, manga: bool, meta: dict | None = None) -> str:
+    meta = meta or {}
     direction = 'rtl' if manga else 'ltr'
     # Nomes de quadrinhos costumam trazer & e < — sem escape o OPF vira XML inválido
     title = html.escape(title, quote=False)
+    idioma = meta.get('language') or ('ja' if manga else 'pt')
+    extra = _meta_extra(meta)
     # Primeira imagem é a capa (cover-image) — necessário para o Kindle gerar thumbnail
     manifest_img   = (
         '<item id="img0000" href="Images/page0000.jpg" media-type="image/jpeg" properties="cover-image"/>\n    '
@@ -351,7 +533,7 @@ def _build_opf(title: str, uid: str, n: int, manga: bool) -> str:
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
     <dc:identifier id="BookId">{uid}</dc:identifier>
     <dc:title>{title}</dc:title>
-    <dc:language>{'ja' if manga else 'pt'}</dc:language>
+    <dc:language>{idioma}</dc:language>{extra}
     <meta name="cover" content="img0000"/>
     <meta property="rendition:layout">pre-paginated</meta>
     <meta property="rendition:orientation">auto</meta>
@@ -389,7 +571,8 @@ def _build_xhtml(idx: int, vp_w: int, vp_h: int) -> str:
 
 
 def build_epub(pages: Iterator[tuple[bytes, int, int]], title: str,
-               out_path: Path, profile: dict, manga: bool) -> int:
+               out_path: Path, profile: dict, manga: bool,
+               meta: dict | None = None) -> int:
     """
     Grava o EPUB consumindo as páginas uma a uma (sem acumular o livro na memória).
 
@@ -426,7 +609,7 @@ def build_epub(pages: Iterator[tuple[bytes, int, int]], title: str,
                 raise EmptyBookError('Nenhuma imagem válida encontrada no arquivo')
 
             # o OPF vai por último porque só agora sabemos o total de páginas
-            epub.writestr('OEBPS/content.opf', _build_opf(title, uid, n, manga))
+            epub.writestr('OEBPS/content.opf', _build_opf(title, uid, n, manga, meta))
 
         os.replace(tmp_path, out_path)      # substituição atômica
     except BaseException:
@@ -478,16 +661,33 @@ def convert(fp: str, output_dir: str, params: dict) -> dict:
     out_dir  = Path(output_dir) if output_dir and os.path.isdir(output_dir) else src.parent
     out_path = out_dir / (src.stem + '.epub')
 
+    # metadados internos, quando existirem, mandam no título e na série
+    meta = read_comicinfo(src) if params.get('use_metadata', True) else {}
+    titulo = _titulo_de(meta, src.stem)
+
+    # ComicInfo pode declarar leitura da direita para a esquerda
+    if not manga and str(meta.get('manga', '')).lower() == 'yesandrighttoleft':
+        manga = True
+        meta['_rtl_auto'] = True
+
     stats = {'errors': 0}
     try:
         pages = _page_stream(src, profile, params, stats)
-        n = build_epub(pages, src.stem, out_path, profile, manga)
+        n = build_epub(pages, titulo, out_path, profile, manga, meta)
     except (ExtractError, EmptyBookError) as e:
         return {'ok': False, 'msg': str(e)}
     except Exception as e:
         return {'ok': False, 'msg': f'Erro ao gerar EPUB: {e}'}
 
     msg = f'EPUB gerado — {n} páginas'
+    if meta.get('series'):
+        msg += f' · série "{meta["series"]}"'
+        if meta.get('number'):
+            msg += f' #{meta["number"]}'
+    if meta.get('_rtl_auto'):
+        msg += ' · RTL pelo ComicInfo'
+    if params.get('trim_margins'):
+        msg += ' · margens aparadas'
     if stats['errors']:
         msg += f' ({stats["errors"]} imagem(ns) ignorada(s))'
     return {'ok': True, 'msg': msg, 'epub': str(out_path.resolve())}

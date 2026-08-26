@@ -1,5 +1,32 @@
 # Histórico de versões
 
+## 1.2.0 — 26/08/2026
+
+Dois recursos que fecham lacunas conhecidas do motor.
+
+### Metadados do ComicInfo.xml
+
+O conversor agora lê o `ComicInfo.xml` de dentro do CBZ, CBR e CB7, quando existe.
+
+- O título do EPUB passa a ser `Série #Número — Título` em vez do nome do arquivo
+- Autor, ano, idioma e sinopse vão para o OPF
+- A série é declarada como coleção (`belongs-to-collection` e `calibre:series`),
+  que é o que faz o leitor agrupar os volumes em vez de espalhá-los
+- `Manga: YesAndRightToLeft` liga a leitura da direita para a esquerda sozinho
+
+Sem `ComicInfo.xml`, o nome do arquivo continua valendo. Dá para desligar a leitura
+nos parâmetros.
+
+### Aparar margens (opcional, desligado por padrão)
+
+Corta a moldura uniforme em volta da arte — margem branca de scan ou tarja preta —
+para a página ocupar a tela inteira.
+
+A detecção é conservadora de propósito, com três travas: a cor de fundo precisa ser
+quase branca ou quase preta, os quatro cantos precisam concordar entre si, e o corte
+precisa preservar pelo menos metade de cada dimensão. Splash pages sangradas, páginas
+escuras e fundos texturizados passam intactos.
+
 ## 1.1.0 — 26/08/2026
 
 Projeto renomeado para **Comic Color Converter**, deixando as marcas de terceiros
