@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca Colorsoft Converter</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+:root {
+  --bg:       #0b0a12;
+  --s1:       #13111d;
+  --s2:       #1a1826;
+  --s3:       #262234;
+  --border:   #2e2a40;
+  --border-2: #3c3654;
+  --text:     #d8d5e8;
+  --dim:      #6b6488;
+  --bright:   #f2f0ff;
+
+  --yellow:  #F2C230;
+  --orange:  #E8843C;
+  --blue:    #3D7FC1;
+  --pink:    #E06A96;
+
+  --yellow-m: #C9B072;
+  --orange-m: #BF8F63;
+  --blue-m:   #6E8CA8;
+  --pink-m:   #BF8496;
+
+  --yellow-g: rgba(242,194,48,.12);
+  --orange-g: rgba(232,132,60,.12);
+  --blue-g:   rgba(61,127,193,.12);
+  --pink-g:   rgba(224,106,150,.12);
+
+  --radius: 5px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 60% 45% at 8% 0%,   rgba(242,194,48,.09), transparent 70%),
+    radial-gradient(ellipse 55% 45% at 92% 4%,  rgba(61,127,193,.11), transparent 70%),
+    radial-gradient(ellipse 70% 50% at 50% 100%,rgba(224,106,150,.07), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 100% 85%,rgba(232,132,60,.06), transparent 70%);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  height: 52px;
+  background: linear-gradient(180deg, rgba(30,26,48,.95), rgba(19,17,29,.92));
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Rainbow accent bar on top */
+header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--yellow) 0%, var(--orange) 33%, var(--pink) 66%, var(--blue) 100%);
+  box-shadow: 0 0 14px rgba(232,132,60,.5);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-squares {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  width: 22px; height: 22px;
+}
+.logo-sq {
+  border-radius: 2px;
+}
+.logo-sq:nth-child(1) { background: var(--yellow); }
+.logo-sq:nth-child(2) { background: var(--orange); }
+.logo-sq:nth-child(3) { background: var(--pink); }
+.logo-sq:nth-child(4) { background: var(--blue); }
+
+.logo-text {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--bright);
+  text-transform: uppercase;
+}
+.logo-text span {
+  background: linear-gradient(90deg, var(--yellow), var(--orange), var(--pink), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+#kcc-badge {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--s3);
+  border: 1px solid var(--border-2);
+  color: var(--dim);
+  font-weight: 500;
+}
+#kcc-badge.ok    { color: var(--blue); border-color: rgba(61,127,193,.5); background: var(--blue-g); }
+#kcc-badge.error { color: var(--pink); border-color: rgba(224,106,150,.5); background: var(--pink-g); }
+
+/* KCC download area */
+#kcc-dl-area {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+#kcc-dl-area.visible { display: flex; }
+
+#btn-dl-kcc {
+  font-size: 11px;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, var(--orange), var(--pink));
+  color: #fff;
+  font-weight: 700;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(232,132,60,.3);
+  transition: opacity .15s;
+}
+#btn-dl-kcc:hover:not(:disabled) { opacity: .85; }
+#btn-dl-kcc:disabled { opacity: .4; cursor: not-allowed; }
+
+#dl-progress-wrap {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--dim);
+}
+#dl-progress-wrap.visible { display: flex; }
+#dl-bar-outer {
+  width: 100px;
+  height: 5px;
+  background: var(--s3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#dl-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--orange), var(--pink));
+  border-radius: 3px;
+  transition: width .3s ease;
+}
+
+#header-stats {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--dim);
+  display: flex;
+  gap: 10px;
+}
+.stat-pill {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.stat-pill.done { background: var(--blue-g); color: var(--blue); }
+.stat-pill.fail { background: var(--pink-g); color: var(--pink); }
+
+/* ── Path bar ────────────────────────────────────────────────────────── */
+.pathbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  background: linear-gradient(90deg, rgba(61,127,193,.10), rgba(19,17,29,.85) 45%, rgba(232,132,60,.08));
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.pathbar-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+.pathbar input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 6px 12px;
+  outline: none;
+  min-width: 0;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pathbar input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(61,127,193,.15);
+}
+.pathbar-sep {
+  width: 2px; height: 20px; flex-shrink: 0; border-radius: 2px;
+  background: linear-gradient(180deg, var(--yellow), var(--pink));
+  opacity: .55;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+button {
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius);
+  padding: 6px 16px;
+  transition: all .15s;
+  white-space: nowrap;
+}
+button:disabled { opacity: .3; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-2);
+  color: var(--text);
+}
+.btn-ghost:hover:not(:disabled) { border-color: var(--dim); background: var(--s3); }
+
+.btn-browse {
+  background: var(--yellow-g);
+  border: 1px solid rgba(242,194,48,.35);
+  color: var(--yellow);
+  padding: 6px 10px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.btn-browse:hover:not(:disabled) {
+  border-color: var(--yellow);
+  background: rgba(242,194,48,.2);
+  box-shadow: 0 2px 8px rgba(242,194,48,.25);
+}
+
+.btn-scan {
+  background: linear-gradient(135deg, var(--blue), #2a5f9e);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(61,127,193,.3);
+}
+.btn-scan:hover:not(:disabled) { opacity: .9; box-shadow: 0 3px 12px rgba(61,127,193,.4); }
+
+.btn-sample {
+  background: linear-gradient(135deg, var(--yellow), var(--orange));
+  color: #1a1000;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 2px 10px rgba(242,194,48,.25);
+}
+.btn-sample:hover:not(:disabled) { opacity: .9; box-shadow: 0 3px 14px rgba(242,194,48,.35); transform: translateY(-1px); }
+
+.btn-selected {
+  background: var(--s3);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+}
+.btn-selected:hover:not(:disabled) { border-color: var(--orange); color: var(--orange); background: var(--orange-g); }
+
+.btn-batch {
+  background: var(--s3);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+}
+.btn-batch:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); background: var(--blue-g); }
+
+.btn-cancel {
+  background: transparent;
+  border: 1px solid var(--pink);
+  color: var(--pink);
+}
+.btn-cancel:hover:not(:disabled) { background: var(--pink-g); }
+
+.kindle-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(61,127,193,.4);
+  color: var(--blue);
+  background: var(--blue-g);
+  transition: all .15s;
+}
+.kindle-link:hover {
+  border-color: var(--blue);
+  background: rgba(61,127,193,.2);
+  box-shadow: 0 2px 8px rgba(61,127,193,.2);
+}
+
+/* ── Main ────────────────────────────────────────────────────────────── */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── File panel ──────────────────────────────────────────────────────── */
+.file-panel {
+  display: flex;
+  flex-direction: column;
+  width: 58%;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+}
+.file-panel::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--yellow), var(--orange), var(--pink), var(--blue));
+  opacity: .35;
+}
+
+.file-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: linear-gradient(90deg, rgba(61,127,193,.14), rgba(26,24,38,.75) 60%);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.file-panel-head .section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--blue);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.file-panel-head .section-title::before {
+  content: '';
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 8px var(--blue);
+  flex-shrink: 0;
+}
+.file-panel-head .count {
+  font-size: 11px;
+  color: var(--dim);
+}
+.file-panel-head .count strong { color: var(--text); }
+
+.file-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+}
+.file-table-wrap::-webkit-scrollbar { width: 5px; }
+.file-table-wrap::-webkit-scrollbar-thumb { background: var(--s3); border-radius: 3px; }
+
+table.files {
+  width: 100%;
+  border-collapse: collapse;
+}
+table.files thead th {
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, #221f31, #1a1826);
+  padding: 7px 12px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--dim);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  user-select: none;
+}
+table.files thead th.col-check { width: 34px; text-align: center; }
+table.files thead th.col-status { width: 30px; text-align: center; }
+table.files thead th.col-size { width: 76px; text-align: right; }
+table.files thead th.col-ext { width: 46px; text-align: center; }
+
+table.files tbody tr {
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .1s;
+}
+table.files tbody tr { box-shadow: inset 3px 0 0 transparent; }
+table.files tbody tr:hover { background: rgba(232,132,60,.07); box-shadow: inset 3px 0 0 var(--orange); }
+table.files tbody tr.selected { background: rgba(61,127,193,.12); box-shadow: inset 3px 0 0 var(--blue); }
+table.files tbody tr.selected:hover { background: rgba(61,127,193,.18); }
+table.files tbody tr.running { background: rgba(242,194,48,.09); box-shadow: inset 3px 0 0 var(--yellow); }
+table.files tbody tr.row-done { background: rgba(61,127,193,.07); box-shadow: inset 3px 0 0 var(--blue); }
+table.files tbody tr.row-failed { background: rgba(224,106,150,.09); box-shadow: inset 3px 0 0 var(--pink); }
+
+table.files td { padding: 7px 12px; }
+table.files td.col-check { text-align: center; }
+table.files td.col-status { text-align: center; }
+table.files td.col-name {
+  font-size: 12px;
+  color: var(--bright);
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+table.files td.col-size {
+  text-align: right;
+  color: var(--dim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+table.files td.col-ext { text-align: center; }
+
+/* ── Alternador de visualização ───────────────────────────────────────── */
+.view-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+}
+.view-toggle button {
+  padding: 2px 9px;
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  border-radius: 3px;
+  line-height: 1.3;
+}
+.view-toggle button:hover { color: var(--text); }
+.view-toggle button.active {
+  background: var(--blue-g);
+  color: var(--blue);
+  box-shadow: inset 0 0 0 1px rgba(61,127,193,.45);
+}
+
+/* ── Miniatura na tabela ──────────────────────────────────────────────── */
+table.files thead th.col-cover { width: 44px; text-align: center; }
+table.files td.col-cover { text-align: center; padding: 4px 6px; }
+
+.thumb {
+  width: 32px;
+  height: 42px;
+  border-radius: 3px;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto;
+  border: 1px solid var(--border-2);
+  background: var(--s3);
+  box-shadow: 0 2px 6px rgba(0,0,0,.45);
+}
+.thumb-empty {
+  width: 32px; height: 42px;
+  border-radius: 3px;
+  margin: 0 auto;
+  border: 1px dashed var(--border-2);
+  background: repeating-linear-gradient(45deg,
+    rgba(107,100,136,.10) 0 4px, transparent 4px 8px);
+}
+
+/* ── Galeria de capas ─────────────────────────────────────────────────── */
+.cover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 16px;
+  padding: 18px;
+}
+.cover-card {
+  position: relative;
+  cursor: pointer;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.cover-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--orange);
+  box-shadow: 0 8px 22px rgba(0,0,0,.5), 0 0 0 1px rgba(232,132,60,.3);
+}
+.cover-card.selected {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(61,127,193,.5), 0 6px 18px rgba(0,0,0,.45);
+}
+.cover-card .art {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  display: block;
+  background: var(--s3);
+}
+.cover-card .art-empty {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--dim);
+  font-size: 10px;
+  text-align: center;
+  padding: 8px;
+  background:
+    repeating-linear-gradient(45deg, rgba(107,100,136,.08) 0 6px, transparent 6px 12px),
+    var(--s3);
+}
+.cover-card .art-empty .big { font-size: 26px; opacity: .5; }
+.cover-card .cap {
+  padding: 7px 9px 9px;
+  font-size: 10px;
+  color: var(--text);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+}
+.cover-card .corner {
+  position: absolute;
+  top: 6px; right: 6px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+}
+.cover-card .corner.ok {
+  background: rgba(61,127,193,.85);
+  color: #fff;
+}
+.cover-card .corner.no {
+  background: rgba(38,34,52,.85);
+  color: var(--dim);
+  border: 1px solid var(--border-2);
+}
+.cover-card .tick {
+  position: absolute;
+  top: 6px; left: 6px;
+  width: 17px; height: 17px;
+  border-radius: 4px;
+  background: rgba(11,10,18,.55);
+  border: 1px solid rgba(255,255,255,.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: transparent;
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity .15s;
+}
+.cover-card:hover .tick { opacity: 1; }
+.cover-card.selected .tick {
+  opacity: 1;
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+
+/* Ext badges */
+.ext-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.ext-badge.cbz {
+  background: var(--yellow-g);
+  color: var(--yellow);
+  border: 1px solid rgba(242,194,48,.35);
+}
+.ext-badge.cbr {
+  background: var(--orange-g);
+  color: var(--orange);
+  border: 1px solid rgba(232,132,60,.35);
+}
+.ext-badge.cb7 {
+  background: var(--pink-g);
+  color: var(--pink);
+  border: 1px solid rgba(224,106,150,.35);
+}
+.ext-badge.pdf {
+  background: var(--blue-g);
+  color: var(--blue);
+  border: 1px solid rgba(61,127,193,.35);
+}
+
+/* Status dots */
+.dot {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+}
+.dot.pending { background: var(--s3); border: 1px solid var(--border-2); }
+.dot.queued  { background: rgba(242,194,48,.3); border: 1px solid rgba(242,194,48,.6); }
+.dot.running { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); animation: pulse 1s ease-in-out infinite; }
+.dot.done    { background: var(--blue); box-shadow: 0 0 5px rgba(61,127,193,.5); }
+.dot.failed  { background: var(--pink); box-shadow: 0 0 5px rgba(224,106,150,.5); }
+.dot.warning { background: var(--orange); box-shadow: 0 0 5px rgba(232,132,60,.5); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .5; transform: scale(0.85); }
+}
+
+input[type=checkbox] {
+  accent-color: var(--blue);
+  width: 13px; height: 13px;
+  cursor: pointer;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: var(--dim);
+  font-size: 12px;
+}
+.empty-state .icon {
+  font-size: 48px;
+  opacity: .55;
+  filter: drop-shadow(0 4px 16px rgba(232,132,60,.45));
+}
+.empty-state p { text-align: center; line-height: 1.7; }
+.empty-state .formats {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.empty-state .fmt {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.fmt-cbz { background: var(--yellow-g); color: var(--yellow); border: 1px solid rgba(242,194,48,.3); }
+.fmt-cbr { background: var(--orange-g); color: var(--orange); border: 1px solid rgba(232,132,60,.3); }
+.fmt-cb7 { background: var(--pink-g);   color: var(--pink);   border: 1px solid rgba(224,106,150,.3); }
+.fmt-pdf { background: var(--blue-g);   color: var(--blue);   border: 1px solid rgba(61,127,193,.3); }
+
+/* ── Control panel ───────────────────────────────────────────────────── */
+.ctrl-panel {
+  width: 42%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(19,17,29,.88), rgba(11,10,18,.75));
+}
+
+/* Section header */
+.section-head {
+  padding: 8px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(90deg, rgba(242,194,48,.10), transparent 65%);
+}
+.section-head .dot-accent {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* ── Actions ─────────────────────────────────────────────────────────── */
+.actions {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.action-row { display: flex; gap: 8px; }
+.action-row button { flex: 1; }
+#btn-sample { padding: 11px; }
+
+.action-hint { font-size: 11px; color: var(--dim); }
+.sample-approved {
+  font-size: 11px;
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--blue-g);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(61,127,193,.2);
+}
+
+/* ── Params ──────────────────────────────────────────────────────────── */
+.params-section {
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.params-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--orange);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  background: linear-gradient(90deg, rgba(232,132,60,.12), transparent 65%);
+  border-top: 1px solid var(--border);
+}
+.params-toggle:hover { opacity: .8; }
+.params-toggle .arrow { transition: transform .2s; font-size: 9px; }
+.params-toggle .arrow.open { transform: rotate(180deg); }
+
+.params-body {
+  padding: 10px 16px 14px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+.params-body.open { display: flex; }
+
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.param-row label {
+  font-size: 11px;
+  color: var(--dim);
+  width: 88px;
+  flex-shrink: 0;
+}
+.param-row .val { font-size: 12px; color: var(--text); flex: 1; }
+.param-row input[type=number],
+.param-row select {
+  background: var(--bg);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 4px 8px;
+  width: 100%;
+  outline: none;
+  transition: border-color .15s;
+}
+.param-row select { cursor: pointer; }
+.param-row input:focus, .param-row select:focus { border-color: var(--orange); }
+.param-locked {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--orange);
+  border: 1px solid rgba(232,132,60,.35);
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  background: var(--orange-g);
+}
+
+/* ── Progress ────────────────────────────────────────────────────────── */
+.progress-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+.progress-section.visible { display: flex; }
+
+.prog-row { display: flex; flex-direction: column; gap: 5px; }
+.prog-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+.prog-labels .prog-name { color: var(--dim); font-size: 10px; text-transform: uppercase; letter-spacing: .07em; }
+.prog-labels strong { color: var(--text); font-variant-numeric: tabular-nums; }
+
+.prog-bar {
+  height: 5px;
+  background: var(--s3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.prog-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .5s ease;
+}
+.prog-fill.item  { background: linear-gradient(90deg, var(--yellow), var(--orange), var(--pink)); box-shadow: 0 0 10px rgba(232,132,60,.5); }
+.prog-fill.batch { background: linear-gradient(90deg, var(--pink), var(--blue)); box-shadow: 0 0 10px rgba(61,127,193,.5); }
+.prog-fill.done  { background: linear-gradient(90deg, var(--yellow), var(--orange), var(--pink), var(--blue)); box-shadow: 0 0 12px rgba(61,127,193,.55); }
+
+.prog-current {
+  font-size: 11px;
+  color: var(--dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prog-current strong { color: var(--yellow); }
+
+/* ── Log ─────────────────────────────────────────────────────────────── */
+.log-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+.log-head {
+  padding: 7px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pink);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  background: linear-gradient(90deg, rgba(224,106,150,.12), transparent 65%);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.log-head button {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid var(--border-2);
+  color: var(--dim);
+  border-radius: 3px;
+  transition: all .15s;
+}
+.log-head button:hover {
+  color: var(--pink);
+  border-color: rgba(224,106,150,.55);
+  background: var(--pink-g);
+}
+
+.log-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.log-body::-webkit-scrollbar { width: 4px; }
+.log-body::-webkit-scrollbar-thumb { background: var(--s3); border-radius: 2px; }
+
+.log-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 16px 5px 13px;
+  font-size: 11px;
+  line-height: 1.4;
+  border-bottom: 1px solid transparent;
+  border-left: 3px solid transparent;
+  transition: background .08s, border-left-color .08s;
+}
+.log-entry:hover { background: var(--s2); }
+.log-icon { font-size: 10px; flex-shrink: 0; width: 12px; text-align: center; }
+.log-name { flex-shrink: 0; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-msg  { color: var(--dim); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.log-entry.done    { background: rgba(61,127,193,.05); border-left-color: var(--blue); border-bottom-color: rgba(61,127,193,.08); }
+.log-entry.done    .log-icon { color: var(--blue); }
+.log-entry.done    .log-name { color: var(--bright); }
+.log-entry.failed  { background: rgba(224,106,150,.07); border-left-color: var(--pink); border-bottom-color: rgba(224,106,150,.12); }
+.log-entry.failed  .log-icon { color: var(--pink); }
+.log-entry.failed  .log-name { color: var(--pink); }
+.log-entry.running { background: rgba(242,194,48,.06); border-left-color: var(--yellow); }
+.log-entry.running .log-icon { color: var(--yellow); }
+.log-entry.running .log-name { color: var(--yellow); }
+.log-entry.error   { background: rgba(224,106,150,.07); border-left-color: var(--pink); }
+.log-entry.error   .log-icon { color: var(--pink); }
+.log-entry.error   .log-name { color: var(--pink); }
+.log-entry.info    { border-left-color: var(--border-2); }
+.log-entry.info    .log-icon { color: var(--orange); }
+.log-entry.info    .log-name { color: var(--text); }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--orange), var(--pink));
+  border-radius: 3px;
+  opacity: .6;
+}
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, var(--yellow), var(--blue)); }
+
+/* ── Toast ───────────────────────────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--s2);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--text);
+  max-width: 360px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .2s, transform .2s;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+#toast.show   { opacity: 1; transform: translateY(0); }
+#toast.error  { border-color: rgba(224,106,150,.5); color: var(--pink); background: rgba(224,106,150,.08); }
+#toast.ok     { border-color: rgba(61,127,193,.5);  color: var(--blue); background: rgba(61,127,193,.08); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-squares">
+      <div class="logo-sq"></div><div class="logo-sq"></div>
+      <div class="logo-sq"></div><div class="logo-sq"></div>
+    </div>
+    <span class="logo-text"><span>Biblioteca Colorsoft</span> Converter</span>
+  </div>
+  <span id="kcc-badge">Verificando conversor…</span>
+  <div id="header-stats"></div>
+</header>
+
+<!-- Path bar -->
+<div class="pathbar">
+  <span class="pathbar-label">Fonte</span>
+  <input type="text" id="src-path" placeholder="Caminho da pasta com os quadrinhos…" autocomplete="off" spellcheck="false">
+  <button class="btn-browse" id="btn-browse" title="Selecionar pasta">📁</button>
+  <button class="btn-scan" id="btn-scan">Escanear</button>
+  <div class="pathbar-sep"></div>
+  <span class="pathbar-label">Saída</span>
+  <input type="text" id="out-path" placeholder="Mesma pasta (padrão)" style="max-width:240px" autocomplete="off" spellcheck="false">
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- File panel -->
+  <div class="file-panel">
+    <div class="file-panel-head">
+      <span class="section-title">Arquivos</span>
+      <span class="count" id="file-count">Nenhum arquivo carregado</span>
+      <div class="view-toggle">
+        <button id="view-list" class="active" title="Lista">☰</button>
+        <button id="view-grid" title="Capas">▦</button>
+      </div>
+      <button class="btn-ghost" id="btn-select-all" style="font-size:10px;padding:3px 10px" disabled>Todos</button>
+      <button class="btn-ghost" id="btn-deselect"   style="font-size:10px;padding:3px 10px" disabled>Limpar</button>
+    </div>
+
+    <div class="file-table-wrap" id="file-table-wrap">
+      <div class="empty-state" id="empty-state">
+        <div class="icon">📂</div>
+        <p>Informe o caminho da pasta<br>e clique em <strong>Escanear</strong></p>
+        <div class="formats">
+          <span class="fmt fmt-cbr">CBR</span>
+          <span class="fmt fmt-cbz">CBZ</span>
+          <span class="fmt fmt-cb7">CB7</span>
+          <span class="fmt fmt-pdf">PDF</span>
+        </div>
+      </div>
+      <table class="files" id="file-table" style="display:none">
+        <thead>
+          <tr>
+            <th class="col-check"><input type="checkbox" id="chk-all"></th>
+            <th class="col-status">●</th>
+            <th class="col-cover">Capa</th>
+            <th class="col-name">Arquivo</th>
+            <th class="col-size">Tamanho</th>
+            <th class="col-ext">Tipo</th>
+          </tr>
+        </thead>
+        <tbody id="file-tbody"></tbody>
+      </table>
+      <div class="cover-grid" id="cover-grid" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Control panel -->
+  <div class="ctrl-panel">
+
+    <!-- Actions -->
+    <div class="section-head" style="color:var(--yellow)">
+      <div class="dot-accent" style="background:var(--yellow)"></div>
+      Conversão
+    </div>
+    <div class="actions">
+      <button class="btn-sample" id="btn-sample" disabled>▶ Converter amostra</button>
+      <div id="sample-hint" class="action-hint">Selecione um arquivo e converta como teste antes do lote</div>
+      <div class="action-row">
+        <button class="btn-selected" id="btn-selected" disabled>◎ Selecionados</button>
+        <button class="btn-batch"    id="btn-batch"    disabled>▷ Lote completo</button>
+      </div>
+      <button class="btn-cancel" id="btn-cancel" style="display:none">■ Cancelar conversão</button>
+      <a href="https://www.amazon.com.br/sendtokindle" target="_blank" id="btn-kindle" class="kindle-link">
+        📤 Enviar para Kindle
+      </a>
+    </div>
+
+    <!-- Params -->
+    <div class="params-section">
+      <div class="params-toggle" id="params-toggle">
+        <span>⚙ Parâmetros do projeto</span>
+        <span class="arrow" id="params-arrow">▼</span>
+      </div>
+      <div class="params-body" id="params-body">
+        <div class="param-row">
+          <label>Perfil</label>
+          <select id="p-profile" style="flex:1"><option value="KCC">Kindle Colorsoft</option></select>
+          <span class="param-locked">padrão</span>
+        </div>
+        <div class="param-row">
+          <label>Formato</label>
+          <select id="p-format" style="flex:1">
+            <option value="EPUB" selected>EPUB</option>
+          </select>
+          <span class="param-locked">saída</span>
+        </div>
+        <div class="param-row">
+          <label>Qualidade JPEG</label>
+          <input type="number" id="p-quality" value="90" min="60" max="100" style="width:68px;flex:none">
+          <span class="param-locked">padrão q90</span>
+        </div>
+        <div class="param-row">
+          <label>Gamma</label>
+          <span class="val">1.0 — desativado</span>
+          <span class="param-locked">travado</span>
+        </div>
+        <div class="param-row">
+          <label>Spread shift</label>
+          <label style="display:flex;align-items:center;gap:6px;width:auto;color:var(--text)">
+            <input type="checkbox" id="p-spread" checked style="flex:none"> Ligado
+          </label>
+          <span class="param-locked">padrão</span>
+        </div>
+        <div class="param-row">
+          <label>Modo mangá</label>
+          <label style="display:flex;align-items:center;gap:6px;width:auto;color:var(--text)">
+            <input type="checkbox" id="p-manga" style="flex:none"> RTL (direita → esquerda)
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-section" id="progress-section">
+      <div class="prog-row">
+        <div class="prog-labels">
+          <span class="prog-name">Volume atual</span>
+          <strong id="prog-item-label">—</strong>
+        </div>
+        <div class="prog-bar"><div class="prog-fill item" id="prog-item-bar" style="width:0%"></div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-labels">
+          <span class="prog-name">Lote</span>
+          <strong id="prog-batch-label">—</strong>
+        </div>
+        <div class="prog-bar"><div class="prog-fill batch" id="prog-batch-bar" style="width:0%"></div></div>
+      </div>
+      <div class="prog-current" id="prog-current">—</div>
+    </div>
+
+    <!-- Log -->
+    <div class="log-section">
+      <div class="log-head">
+        <span>Log</span>
+        <div style="display:flex;gap:6px">
+          <button id="btn-copy-log" onclick="copyLog()">Copiar</button>
+          <button onclick="clearLog()">Limpar</button>
+        </div>
+      </div>
+      <div class="log-body" id="log-body">
+        <div class="log-entry info">
+          <span class="log-icon">◦</span>
+          <span class="log-name">Pronto</span>
+          <span class="log-msg">Aguardando arquivos…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const S = {
+  files: [], fileStatus: {}, selected: new Set(),
+  jobId: null, jobRunning: false, sampleDone: false, kccOk: false,
+  view: 'list',
+  params: () => ({
+    profile:      document.getElementById('p-profile').value,
+    format:       document.getElementById('p-format').value,
+    quality:      parseInt(document.getElementById('p-quality').value) || 90,
+    spread_shift: document.getElementById('p-spread').checked,
+    manga:        document.getElementById('p-manga').checked,
+  }),
+};
+
+const $ = id => document.getElementById(id);
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadKcc();
+  await restoreSettings();
+  $('btn-scan').addEventListener('click', handleScan);
+  $('btn-browse').addEventListener('click', handleBrowse);
+  $('src-path').addEventListener('keydown', e => { if (e.key === 'Enter') handleScan(); });
+  $('btn-sample').addEventListener('click', handleSample);
+  $('btn-selected').addEventListener('click', handleSelected);
+  $('btn-batch').addEventListener('click', handleBatch);
+  $('btn-cancel').addEventListener('click', handleCancel);
+  $('btn-select-all').addEventListener('click', selectAll);
+  $('btn-deselect').addEventListener('click', deselectAll);
+  $('chk-all').addEventListener('change', e => e.target.checked ? selectAll() : deselectAll());
+  $('params-toggle').addEventListener('click', toggleParams);
+  $('view-list').addEventListener('click', () => setView('list'));
+  $('view-grid').addEventListener('click', () => setView('grid'));
+
+  // salva os parâmetros sempre que mudarem
+  ['p-profile','p-format','p-quality','p-spread','p-manga'].forEach(id =>
+    $(id).addEventListener('change', saveSettings));
+  $('out-path').addEventListener('change', saveSettings);
+});
+
+// ── Preferências ────────────────────────────────────────────────────────────
+
+let _saveTimer;
+function saveSettings() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        src_path: $('src-path').value.trim(),
+        out_path: $('out-path').value.trim(),
+        view:     S.view,
+        params:   S.params(),
+      }),
+    }).catch(() => {});
+  }, 400);
+}
+
+async function restoreSettings() {
+  try {
+    const d = await (await fetch('/api/settings')).json();
+
+    if (d.out_path) $('out-path').value = d.out_path;
+    if (d.view === 'grid') setView('grid');
+
+    const p = d.params || {};
+    if (p.profile) {
+      const sel = $('p-profile');
+      if ([...sel.options].some(o => o.value === p.profile)) sel.value = p.profile;
+    }
+    if (p.quality) $('p-quality').value = p.quality;
+    if (typeof p.spread_shift === 'boolean') $('p-spread').checked = p.spread_shift;
+    if (typeof p.manga        === 'boolean') $('p-manga').checked  = p.manga;
+
+    if (d.src_path) {
+      $('src-path').value = d.src_path;
+      if (d.src_exists) {
+        log('info', 'Última pasta', d.src_path);
+        handleScan();
+      } else {
+        log('info', 'Última pasta', 'não encontrada — ' + d.src_path);
+      }
+    }
+  } catch(e) { /* sem preferências salvas */ }
+}
+
+async function loadKcc() {
+  try {
+    const r = await fetch('/api/kcc');
+    const d = await r.json();
+    const badge = $('kcc-badge');
+    if (d.error) {
+      badge.textContent = 'Conversor: erro';
+      badge.className = 'error';
+      log('error', 'Conversor', d.error);
+    } else {
+      badge.textContent = d.version;
+      badge.className = 'ok';
+      S.kccOk = true;
+      if (d.profiles && d.profiles.length) {
+        const sel = $('p-profile');
+        sel.innerHTML = '';
+        d.profiles.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.label || p.id;
+          if (p.id === 'KCC') opt.selected = true;
+          sel.appendChild(opt);
+        });
+      }
+      log('info', 'Conversor', d.version + ' pronto');
+      updateButtons();
+    }
+  } catch(e) {
+    $('kcc-badge').textContent = 'Erro de conexão';
+    $('kcc-badge').className = 'error';
+  }
+}
+
+function startKccDownload() {
+  const btn = $('btn-dl-kcc');
+  const prog = $('dl-progress-wrap');
+  btn.disabled = true;
+  btn.textContent = '⬇ Baixando…';
+  prog.classList.add('visible');
+  log('info', 'Download', 'Iniciando download do KCC (88 MB)…');
+
+  const es = new EventSource('/api/kcc/download');
+  es.onmessage = e => {
+    const d = JSON.parse(e.data);
+    if (d.status === 'downloading') {
+      const pct = d.pct + '%';
+      $('dl-bar-fill').style.width = pct;
+      $('dl-pct-label').textContent = pct + (d.mb ? ' · ' + d.mb + ' / ' + d.total_mb + ' MB' : '');
+      btn.textContent = '⬇ ' + pct;
+    } else if (d.status === 'done') {
+      es.close();
+      $('dl-bar-fill').style.width = '100%';
+      $('dl-pct-label').textContent = '100%';
+      btn.textContent = '✓ Baixado!';
+      log('info', 'Download', 'KCC baixado com sucesso — verificando…');
+      toast('KCC baixado com sucesso!', 'ok');
+      setTimeout(() => {
+        prog.classList.remove('visible');
+        loadKcc();  // re-check and populate profiles
+      }, 1200);
+    } else if (d.status === 'error') {
+      es.close();
+      btn.disabled = false;
+      btn.textContent = '⬇ Baixar KCC (88 MB)';
+      prog.classList.remove('visible');
+      log('error', 'Download', d.msg || 'Erro desconhecido');
+      toast('Erro no download: ' + (d.msg || 'Erro desconhecido'), 'error');
+    }
+  };
+  es.onerror = () => {
+    es.close();
+    btn.disabled = false;
+    btn.textContent = '⬇ Baixar KCC (88 MB)';
+    prog.classList.remove('visible');
+    log('error', 'Download', 'Conexão perdida durante o download');
+    toast('Erro: conexão perdida durante o download', 'error');
+  };
+}
+
+async function handleBrowse() {
+  const btn = $('btn-browse');
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  try {
+    const initial = $('src-path').value.trim();
+    const url = '/api/browse' + (initial ? '?initial=' + encodeURIComponent(initial) : '');
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.error) { toast('Erro ao abrir seletor: ' + d.error, 'error'); return; }
+    if (d.path) {
+      $('src-path').value = d.path;
+      handleScan();
+    }
+  } catch(e) {
+    toast('Erro ao abrir seletor de pasta', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📁';
+  }
+}
+
+async function handleScan() {
+  const path = $('src-path').value.trim();
+  if (!path) { toast('Informe o caminho da pasta', 'error'); return; }
+  log('info', 'Escaneando', path);
+  try {
+    const out = $('out-path').value.trim();
+    const r = await fetch('/api/scan?path=' + encodeURIComponent(path) +
+                          (out ? '&out=' + encodeURIComponent(out) : ''));
+    const d = await r.json();
+    if (d.error) { toast(d.error, 'error'); log('error', 'Erro', d.error); return; }
+    S.files = d.files.map(f => ({ ...f }));
+    S.fileStatus = {};
+    S.selected = new Set();
+    // arquivos já convertidos entram marcados como concluídos
+    S.files.forEach(f => { if (f.converted) S.fileStatus[f.path] = 'done'; });
+    renderTable();
+    updateCount();
+    updateButtons();
+    const already = d.files.filter(f => f.converted).length;
+    log('info', 'Pasta', d.count + ' arquivo(s) encontrado(s)' +
+        (already ? ' · ' + already + ' já convertido(s)' : ''));
+    if (!d.count) toast('Nenhum arquivo suportado na pasta', 'error');
+  } catch(e) {
+    toast('Erro ao escanear: ' + e.message, 'error');
+  }
+}
+
+function thumbUrl(f) {
+  if (!f.epub) return null;
+  return '/api/thumb?path=' + encodeURIComponent(f.epub) + '&v=' + (f._v || 0);
+}
+
+function renderTable() {
+  const empty = $('empty-state');
+  const table = $('file-table');
+  const grid  = $('cover-grid');
+
+  if (!S.files.length) {
+    table.style.display = 'none';
+    grid.style.display  = 'none';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  if (S.view === 'grid') {
+    table.style.display = 'none';
+    grid.style.display  = '';
+    renderGrid();
+    return;
+  }
+  grid.style.display  = 'none';
+  table.style.display = '';
+
+  const tbody = $('file-tbody');
+  tbody.innerHTML = '';
+  S.files.forEach(f => {
+    const status = S.fileStatus[f.path] || 'pending';
+    const sel    = S.selected.has(f.path);
+    const url    = thumbUrl(f);
+    const tr = document.createElement('tr');
+    tr.dataset.path = f.path;
+    if (sel)                  tr.classList.add('selected');
+    if (status === 'running') tr.classList.add('running');
+    if (status === 'done')    tr.classList.add('row-done');
+    if (status === 'failed')  tr.classList.add('row-failed');
+    tr.innerHTML =
+      '<td class="col-check"><input type="checkbox"' + (sel ? ' checked' : '') + ' data-path="' + esc(f.path) + '"></td>' +
+      '<td class="col-status"><span class="dot ' + status + '" id="dot-' + dotId(f.path) + '"></span></td>' +
+      '<td class="col-cover">' + (url
+        ? '<img class="thumb" src="' + esc(url) + '" loading="lazy" alt="capa" ' +
+          'onerror="this.outerHTML=\'<div class=&quot;thumb-empty&quot;></div>\'">'
+        : '<div class="thumb-empty"></div>') + '</td>' +
+      '<td class="col-name">' + esc(f.name) + '</td>' +
+      '<td class="col-size">' + fmtSize(f.size) + '</td>' +
+      '<td class="col-ext"><span class="ext-badge ' + f.ext + '">' + f.ext + '</span></td>';
+    tr.addEventListener('click', e => { if (e.target.type === 'checkbox') return; toggleSelect(f.path); });
+    tr.querySelector('input[type=checkbox]').addEventListener('change', e => {
+      e.stopPropagation();
+      if (e.target.checked) S.selected.add(f.path); else S.selected.delete(f.path);
+      tr.classList.toggle('selected', S.selected.has(f.path));
+      updateCount(); updateButtons();
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function renderGrid() {
+  const grid = $('cover-grid');
+  grid.innerHTML = '';
+  S.files.forEach(f => {
+    const sel = S.selected.has(f.path);
+    const url = thumbUrl(f);
+    const card = document.createElement('div');
+    card.className = 'cover-card' + (sel ? ' selected' : '');
+    card.dataset.path = f.path;
+    card.innerHTML =
+      (url
+        ? '<img class="art" src="' + esc(url) + '" loading="lazy" alt="capa" ' +
+          'onerror="this.outerHTML=\'<div class=&quot;art-empty&quot;><span class=&quot;big&quot;>📕</span>capa indisponível</div>\'">'
+        : '<div class="art-empty"><span class="big">📘</span>não convertido</div>') +
+      '<div class="tick">✓</div>' +
+      '<div class="corner ' + (f.converted ? 'ok' : 'no') + '">' +
+        (f.converted ? 'EPUB' : f.ext) + '</div>' +
+      '<div class="cap">' + esc(f.name) + '</div>';
+    card.addEventListener('click', () => toggleSelect(f.path));
+    grid.appendChild(card);
+  });
+}
+
+function setView(v) {
+  S.view = v;
+  $('view-list').classList.toggle('active', v === 'list');
+  $('view-grid').classList.toggle('active', v === 'grid');
+  renderTable();
+  saveSettings();
+}
+
+function updateFileDot(path, status) {
+  S.fileStatus[path] = status;
+  const dot = document.getElementById('dot-' + dotId(path));
+  if (dot) dot.className = 'dot ' + status;
+  const tr = document.querySelector('tr[data-path="' + CSS.escape(path) + '"]');
+  if (tr) {
+    tr.classList.toggle('running',    status === 'running');
+    tr.classList.toggle('row-done',   status === 'done');
+    tr.classList.toggle('row-failed', status === 'failed');
+    tr.classList.toggle('selected',   S.selected.has(path));
+  }
+}
+
+function toggleSelect(path) {
+  if (S.selected.has(path)) S.selected.delete(path); else S.selected.add(path);
+  renderTable(); updateCount(); updateButtons();
+}
+function selectAll()   { S.files.forEach(f => S.selected.add(f.path));  renderTable(); updateCount(); updateButtons(); }
+function deselectAll() { S.selected.clear(); renderTable(); updateCount(); updateButtons(); }
+
+function updateCount() {
+  const total = S.files.length, sel = S.selected.size;
+  $('file-count').innerHTML = total
+    ? '<strong>' + sel + '</strong> de <strong>' + total + '</strong> selecionado(s)'
+    : 'Nenhum arquivo carregado';
+  $('chk-all').checked = total > 0 && sel === total;
+  $('chk-all').indeterminate = sel > 0 && sel < total;
+}
+
+function updateButtons() {
+  const hasFiles = S.files.length > 0;
+  const hasSel   = S.selected.size > 0;
+  const running  = S.jobRunning;
+  const kcc      = S.kccOk;
+  $('btn-select-all').disabled = !hasFiles || running;
+  $('btn-deselect').disabled   = !hasSel  || running;
+  $('btn-sample').disabled     = !hasSel  || !kcc || running;
+  $('btn-selected').disabled   = !hasSel  || !kcc || running;
+  $('btn-batch').disabled      = !hasFiles || !kcc || running;
+  $('btn-cancel').style.display = running ? '' : 'none';
+
+  const hint = $('sample-hint');
+  if (S.sampleDone) {
+    hint.className = 'sample-approved';
+    hint.textContent = 'Amostra convertida — lote liberado';
+  } else {
+    hint.className = 'action-hint';
+    hint.textContent = hasSel
+      ? S.selected.size + ' arquivo(s) pronto(s) para amostra'
+      : 'Selecione um arquivo para converter como teste';
+  }
+
+  const done   = Object.values(S.fileStatus).filter(s => s === 'done').length;
+  const failed = Object.values(S.fileStatus).filter(s => s === 'failed').length;
+  const stats  = $('header-stats');
+  stats.innerHTML = '';
+  if (done)   stats.innerHTML += '<span class="stat-pill done">✓ ' + done + '</span>';
+  if (failed) stats.innerHTML += '<span class="stat-pill fail">✗ ' + failed + '</span>';
+}
+
+async function startJob(files, label) {
+  const output_dir = $('out-path').value.trim();
+  log('info', label, files.length + ' arquivo(s)');
+  try {
+    const r = await fetch('/api/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files, output_dir, params: S.params() }),
+    });
+    const d = await r.json();
+    if (d.error) { toast(d.error, 'error'); return; }
+    S.jobId = d.job_id; S.jobRunning = true;
+    setProgress(true); updateButtons();
+    files.forEach(fp => updateFileDot(fp, 'queued'));
+    subscribeSSE(d.job_id);
+  } catch(e) {
+    toast('Erro ao iniciar: ' + e.message, 'error');
+  }
+}
+
+function handleSample()  { const f = [...S.selected].slice(0,1); if (!f.length) { toast('Selecione um arquivo', 'error'); return; } startJob(f, 'Amostra'); }
+function handleSelected() { const f = [...S.selected]; if (!f.length) { toast('Nenhum selecionado', 'error'); return; } startJob(f, 'Selecionados'); }
+function handleBatch()    { startJob(S.files.map(f => f.path), 'Lote completo'); }
+async function handleCancel() { if (S.jobId) await fetch('/api/jobs/' + S.jobId + '/cancel', { method: 'POST' }); log('info', 'Cancelando', '…'); }
+
+function subscribeSSE(jobId) {
+  const es = new EventSource('/api/jobs/' + jobId + '/events');
+  es.addEventListener('progress', e => updateProgress(JSON.parse(e.data)));
+  es.addEventListener('done',      e => { onJobFinished(JSON.parse(e.data), false); es.close(); });
+  es.addEventListener('cancelled', e => { onJobFinished(JSON.parse(e.data), true);  es.close(); });
+  es.onerror = () => { if (!S.jobRunning) es.close(); };
+}
+
+/** Guarda o caminho do EPUB recém-gerado para exibir a capa. Retorna true se algo mudou. */
+function applyCovers(results) {
+  let changed = false;
+  (results || []).forEach(r => {
+    if (!r.epub) return;
+    const f = S.files.find(x => x.path === r.path);
+    if (f && f.epub !== r.epub) {
+      f.epub = r.epub;
+      f.converted = true;
+      f._v = Date.now();          // força recarregar a miniatura
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+function updateProgress(d) {
+  const idx = d.index || 0, total = d.total || 1;
+  const pct = Math.round((idx / total) * 100);
+  if (applyCovers(d.results)) renderTable();
+  (d.results || []).forEach(r => updateFileDot(r.path, r.status));
+  if (d.current) updateFileDot(d.current, 'running');
+  const currentName = d.current ? d.current.split(/[/\\]/).pop() : '—';
+  $('prog-item-label').textContent  = idx + ' / ' + total;
+  $('prog-batch-label').textContent = (d.done || 0) + ' concluído(s)' + (d.failed ? ' · ' + d.failed + ' falha(s)' : '');
+  $('prog-item-bar').style.width  = pct + '%';
+  $('prog-batch-bar').style.width = pct + '%';
+  $('prog-current').innerHTML = d.current ? 'Convertendo: <strong>' + esc(currentName) + '</strong>' : '—';
+
+  const results = d.results || [];
+  const last = results[results.length - 1];
+  if (last && !document.querySelector('.log-entry[data-path="' + CSS.escape(last.path) + '"]')) {
+    const entry = document.createElement('div');
+    entry.className = 'log-entry ' + last.status;
+    entry.dataset.path = last.path;
+    entry.innerHTML =
+      '<span class="log-icon">' + (last.status === 'done' ? '✓' : '✗') + '</span>' +
+      '<span class="log-name">' + esc(last.name) + '</span>' +
+      '<span class="log-msg">'  + esc(last.msg || '') + '</span>';
+    $('log-body').appendChild(entry);
+    $('log-body').scrollTop = $('log-body').scrollHeight;
+  }
+}
+
+function onJobFinished(d, cancelled) {
+  S.jobRunning = false;
+  applyCovers(d.results);
+  renderTable();
+  (d.results || []).forEach(r => updateFileDot(r.path, r.status));
+  if (!cancelled) {
+    $('prog-item-bar').style.width  = '100%';
+    $('prog-batch-bar').style.width = '100%';
+    $('prog-item-bar').classList.add('done');
+    $('prog-batch-bar').classList.add('done');
+  }
+  $('prog-current').innerHTML = cancelled ? 'Cancelado pelo usuário' : 'Concluído';
+  if (!cancelled && d.done > 0) S.sampleDone = true;
+  const msg = cancelled
+    ? 'Cancelado — ' + d.done + ' concluído(s), ' + d.failed + ' falha(s)'
+    : 'Concluído — ' + d.done + ' de ' + d.total + ' com sucesso' + (d.failed ? ', ' + d.failed + ' falha(s)' : '');
+  log('info', cancelled ? 'Cancelado' : 'Fim', msg);
+  toast(msg, cancelled ? '' : (d.failed ? 'error' : 'ok'));
+  updateButtons();
+}
+
+function setProgress(visible) {
+  $('progress-section').classList.toggle('visible', visible);
+  if (visible) {
+    ['prog-item-bar','prog-batch-bar'].forEach(id => {
+      $(id).style.width = '0%'; $(id).classList.remove('done');
+    });
+  }
+}
+
+function toggleParams() {
+  $('params-body').classList.toggle('open');
+  $('params-arrow').classList.toggle('open');
+}
+
+function log(type, name, msg) {
+  const icons = { done:'✓', failed:'✗', running:'●', error:'✗', info:'◦' };
+  const e = document.createElement('div');
+  e.className = 'log-entry ' + type;
+  e.innerHTML =
+    '<span class="log-icon">' + (icons[type]||'◦') + '</span>' +
+    '<span class="log-name">' + esc(name) + '</span>' +
+    '<span class="log-msg">'  + esc(msg)  + '</span>';
+  $('log-body').appendChild(e);
+  $('log-body').scrollTop = $('log-body').scrollHeight;
+}
+function clearLog() { $('log-body').innerHTML = ''; }
+
+function copyLog() {
+  const entries = [...$('log-body').querySelectorAll('.log-entry')];
+  const text = entries.map(e => {
+    const icon = e.querySelector('.log-icon')?.textContent.trim() || '';
+    const name = e.querySelector('.log-name')?.textContent.trim() || '';
+    const msg  = e.querySelector('.log-msg')?.textContent.trim()  || '';
+    return [icon, name, msg].filter(Boolean).join(' — ');
+  }).join('\n');
+  if (!text) { toast('Log vazio', ''); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = $('btn-copy-log');
+    const orig = btn.textContent;
+    btn.textContent = 'Copiado!';
+    setTimeout(() => { btn.textContent = orig; }, 1800);
+  }).catch(() => toast('Erro ao copiar', 'error'));
+}
+
+let _tt;
+function toast(msg, type) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => { el.className = ''; }, 4500);
+}
+
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(0) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function dotId(p) { return p.replace(/[^a-zA-Z0-9]/g,'_'); }
+</script>
+</body>
+</html>
