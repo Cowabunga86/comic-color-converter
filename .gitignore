@@ -1,1 +1,34 @@
+# Preferências locais do usuário
 settings.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Extratores externos (baixados pelo usuário, não versionados)
+unrar.exe
+UnRAR.exe
+7z.exe
+7z.dll
+
+# Saídas e arquivos de teste
+*.epub
+*.epub.parcial
+*.cbz
+*.cbr
+*.cb7
+
+# Backups locais
+backup_v*/
+_obsoleto/
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
