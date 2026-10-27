@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## Não lançado
+
+### Instalador para macOS
+
+- `build_installer.sh` (e `.command`) gera o `.app` e o `.dmg` com PyInstaller
+- O seletor de pasta no macOS passa a usar `osascript`; o tkinter derrubava o processo
+- Dentro do `.app`, os `templates` são lidos de `_MEIPASS` e o `settings.json` fica em
+  `~/Library/Application Support/Comic Color Converter`
+- O conversor reconhece o `7zz` (nome do 7-Zip no Homebrew) para abrir CB7/CBR
+
 ## 1.2.0 — 26/08/2026
 
 Dois recursos que fecham lacunas conhecidas do motor.
