@@ -32,3 +32,17 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# Empacotamento (gerado por build_installer.sh)
+build/
+dist/
+
+# Binário de terceiros embutido no instalador (baixar à parte; ver LEIA-ME-INSTALADOR.md)
+assets/7zz
+
+# Backups manuais
+*cópia.py
+
+# Configuração local de ferramentas
+.mcp.json
+.codex/

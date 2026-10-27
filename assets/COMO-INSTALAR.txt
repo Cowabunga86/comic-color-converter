@@ -1,0 +1,47 @@
+COMIC COLOR CONVERTER — COMO INSTALAR
+======================================
+
+1. Dê duplo clique em "Comic Color Converter.dmg" para abrir.
+
+2. Uma janela vai abrir mostrando o ícone do app e um atalho para a pasta
+   Applications. Arraste o ícone do app para cima do atalho Applications.
+
+3. Feche essa janela e ejete o disco (ícone ao lado do nome dele na barra
+   lateral do Finder, ou botão direito → Ejetar).
+
+4. Abra o Launchpad (ou a pasta Applications) e dê duplo clique em
+   "Comic Color Converter".
+
+5. Na primeira vez, o macOS vai recusar abrir e avisar que é de um
+   "desenvolvedor não identificado". Isso é normal — o app não tem
+   certificado pago da Apple. Para liberar:
+
+     a. Clique com o botão DIREITO em "Comic Color Converter"
+        (dentro da pasta Applications).
+     b. Escolha "Abrir".
+     c. Vai aparecer o mesmo aviso, mas agora com um botão "Abrir".
+        Clique nele.
+
+   Isso só precisa ser feito uma vez. Depois disso o app abre normal,
+   com duplo clique.
+
+6. O navegador abre sozinho em http://localhost:5432 com a interface do
+   conversor. O programa roda inteiramente no computador — nada é enviado
+   para a internet.
+
+------------------------------------------------------------------------
+
+USANDO O CONVERSOR
+
+- Clique no ícone de pasta e escolha onde estão os quadrinhos (CBR, CBZ,
+  CB7 ou PDF).
+- "Converter amostra" processa um arquivo só, para conferir o resultado
+  antes de rodar tudo.
+- "Selecionados" ou "Lote completo" convertem o resto.
+- O EPUB gerado fica do lado do arquivo original (ou na pasta de saída,
+  se você escolher uma).
+- Use o link "Enviar para Kindle" para mandar os arquivos convertidos
+  direto para o Send to Kindle.
+
+O programa lembra a última pasta usada, então da próxima vez já abre
+pronto.

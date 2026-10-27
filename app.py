@@ -4,14 +4,25 @@ Roda em http://localhost:5432
 """
 from __future__ import annotations
 from flask import Flask, render_template, jsonify, request, Response
-import threading, os, json, uuid, queue, sys
+import threading, os, json, uuid, queue, sys, subprocess
 from pathlib import Path
 
 # ── Conversor próprio ──────────────────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent))
 from converter import convert as _do_convert, PROFILES, VERSION as CONVERTER_VERSION
 
-app = Flask(__name__)
+def _resource_dir() -> Path:
+    """Pasta onde os recursos (templates) ficam quando rodando de dentro
+    do .app empacotado pelo PyInstaller (onefile usa _MEIPASS; onedir usa
+    a pasta do executável)."""
+    if getattr(sys, 'frozen', False):
+        # sys._MEIPASS aponta para onde o PyInstaller colocou os dados
+        # empacotados, tanto no modo onefile quanto no onedir.
+        return Path(getattr(sys, '_MEIPASS', Path(sys.executable).parent))
+    return Path(__file__).parent
+
+
+app = Flask(__name__, template_folder=str(_resource_dir() / 'templates'))
 # Recarrega o HTML a cada requisição — basta atualizar a página após editar o layout
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
@@ -45,7 +56,18 @@ def _block_foreign_requests():
 
 # ── Preferências persistentes ──────────────────────────────────────────────────
 
-SETTINGS_FILE = Path(__file__).parent / 'settings.json'
+def _settings_dir() -> Path:
+    """Pasta gravável para preferências. Dentro de um .app empacotado (PyInstaller)
+    a pasta do programa não é um lugar confiável para escrever, então usamos
+    a pasta padrão de dados do usuário no macOS."""
+    if getattr(sys, 'frozen', False):
+        d = Path.home() / 'Library' / 'Application Support' / 'Comic Color Converter'
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+    return Path(__file__).parent
+
+
+SETTINGS_FILE = _settings_dir() / 'settings.json'
 _DEFAULT_SETTINGS = {
     'src_path': '',
     'out_path': '',
@@ -92,35 +114,59 @@ def set_settings():
 
 # ── Seletor de pasta nativo ────────────────────────────────────────────────────
 
+def _browse_folder_macos(initial: str) -> str | None:
+    """Abre o seletor de pasta nativo do macOS via AppleScript.
+
+    O Flask atende cada requisição numa thread própria (threaded=True), mas o
+    Tk no macOS (Cocoa) exige que qualquer inicialização de UI — inclusive
+    `tk.Tk()` — aconteça na thread principal; fora dela ele derruba o processo
+    inteiro (NSInternalInconsistencyException ao montar o menu principal).
+    `osascript` abre o diálogo em processo próprio, então não tem essa
+    restrição.
+    """
+    script = 'POSIX path of (choose folder with prompt "Selecionar pasta com quadrinhos"'
+    if initial and os.path.isdir(initial):
+        safe_initial = initial.replace('\\', '\\\\').replace('"', '\\"')
+        script += f' default location (POSIX file "{safe_initial}")'
+    script += ')'
+    result = subprocess.run(
+        ['osascript', '-e', script],
+        capture_output=True, text=True, timeout=300,
+    )
+    if result.returncode != 0:
+        return None   # usuário cancelou o diálogo (ou outro erro)
+    return result.stdout.strip() or None
+
+
 @app.route('/api/browse')
 def browse_folder():
-    """Abre diálogo nativo de seleção de pasta via tkinter."""
+    """Abre diálogo nativo de seleção de pasta."""
     initial = request.args.get('initial', '').strip()
 
-    # dois roots do tkinter ao mesmo tempo travam o processo
+    # dois diálogos ao mesmo tempo confundem o usuário (e, no tkinter, travam o processo)
     if not _browse_lock.acquire(blocking=False):
         return jsonify({'error': 'Já existe um seletor de pasta aberto'}), 409
 
-    root = None
     try:
+        if sys.platform == 'darwin':
+            return jsonify({'path': _browse_folder_macos(initial)})
+
         import tkinter as tk
         from tkinter import filedialog
         root = tk.Tk()
-        root.withdraw()                       # janela principal invisível
-        root.wm_attributes('-topmost', True)  # diálogo aparece na frente
-        kwargs = {'title': 'Selecionar pasta com quadrinhos'}
-        if initial and os.path.isdir(initial):
-            kwargs['initialdir'] = initial
-        folder = filedialog.askdirectory(**kwargs)
-        return jsonify({'path': folder or None})
+        try:
+            root.withdraw()                       # janela principal invisível
+            root.wm_attributes('-topmost', True)  # diálogo aparece na frente
+            kwargs = {'title': 'Selecionar pasta com quadrinhos'}
+            if initial and os.path.isdir(initial):
+                kwargs['initialdir'] = initial
+            folder = filedialog.askdirectory(**kwargs)
+            return jsonify({'path': folder or None})
+        finally:
+            root.destroy()
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        if root is not None:
-            try:
-                root.destroy()
-            except Exception:
-                pass
         _browse_lock.release()
 
 

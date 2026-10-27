@@ -55,17 +55,21 @@ def _find_unrar() -> str | None:
 
 
 def _find_7z() -> str | None:
-    """Procura o 7-Zip na pasta do programa, nos caminhos padrão do Windows ou no PATH."""
+    """Procura o 7-Zip na pasta do programa, nos caminhos padrão do Windows,
+    do Homebrew (que instala o binário como `7zz`, não `7z`) ou no PATH."""
     here = Path(__file__).parent
-    for name in ('7z.exe', '7z'):
+    for name in ('7z.exe', '7z', '7zz'):
         p = here / name
         if p.is_file():
             return str(p)
     for p_str in (r'C:\Program Files\7-Zip\7z.exe',
-                  r'C:\Program Files (x86)\7-Zip\7z.exe'):
+                  r'C:\Program Files (x86)\7-Zip\7z.exe',
+                  '/opt/homebrew/bin/7zz',   # Homebrew (Apple Silicon)
+                  '/usr/local/bin/7zz'):     # Homebrew (Intel)
         if Path(p_str).is_file():
             return p_str
-    return _shutil.which('7z') or _shutil.which('7z.exe')
+    return (_shutil.which('7z') or _shutil.which('7z.exe')
+            or _shutil.which('7zz') or _shutil.which('7zz.exe'))
 
 
 UNRAR_PATH = _find_unrar()
