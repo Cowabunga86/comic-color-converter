@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Iterator
 from uuid import uuid4
 
-VERSION = '1.2.0'
+VERSION = '1.3.0'
 
 # ── Dependências opcionais ────────────────────────────────────────────────────
 try:
