@@ -9,7 +9,8 @@ from pathlib import Path
 
 # ── Conversor próprio ──────────────────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent))
-from converter import convert as _do_convert, PROFILES, VERSION as CONVERTER_VERSION
+from converter import (convert as _do_convert, PROFILES, VERSION as CONVERTER_VERSION,
+                       epub_name as _epub_name)
 
 def _resource_dir() -> Path:
     """Pasta onde os recursos (templates) ficam quando rodando de dentro
@@ -174,10 +175,11 @@ def browse_folder():
 
 def _find_epub(src: Path, out_dir: str) -> Path | None:
     """Procura o EPUB já convertido para este arquivo (pasta de saída ou de origem)."""
+    nome = _epub_name(src)
     candidates = []
     if out_dir and os.path.isdir(out_dir):
-        candidates.append(Path(out_dir) / (src.stem + '.epub'))
-    candidates.append(src.parent / (src.stem + '.epub'))
+        candidates.append(Path(out_dir) / nome)
+    candidates.append(src.parent / nome)
     for c in candidates:
         if c.is_file():
             return c
@@ -444,8 +446,19 @@ def index():
 
 
 if __name__ == '__main__':
-    import webbrowser
+    import socket, webbrowser
     PORT = 5432
-    print(f'\n  ◆ Comic Color Converter v{CONVERTER_VERSION}  →  http://localhost:{PORT}\n')
-    webbrowser.open(f'http://localhost:{PORT}')
+    URL = f'http://localhost:{PORT}'
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        em_uso = s.connect_ex(('127.0.0.1', PORT)) == 0
+    if em_uso:
+        # provavelmente outra instância do app: só abre a que já está rodando
+        print(f'\n  A porta {PORT} já está em uso — abrindo {URL}\n')
+        webbrowser.open(URL)
+        sys.exit(0)
+
+    print(f'\n  ◆ Comic Color Converter v{CONVERTER_VERSION}  →  {URL}\n')
+    # abre o navegador só depois que o servidor já estiver ouvindo
+    threading.Timer(1.0, webbrowser.open, args=[URL]).start()
     app.run(host='127.0.0.1', port=PORT, debug=False, threaded=True)
