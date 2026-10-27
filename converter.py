@@ -10,6 +10,7 @@ import io
 import os
 import re
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
 from uuid import uuid4
@@ -107,6 +108,28 @@ PROFILES: dict[str, dict] = {
 }
 
 IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif'}
+
+COMIC_EXTS = {'.cbr', '.cbz', '.cb7', '.pdf'}
+
+
+def epub_name(src: Path) -> str:
+    """
+    Nome do EPUB gerado a partir de `src`.
+
+    Normalmente é `<nome>.epub`. Se a mesma pasta tiver outro quadrinho com o mesmo
+    nome e outra extensão (Vol 1.cbz e Vol 1.pdf), a extensão entra no nome para
+    que um EPUB não sobrescreva o outro.
+    """
+    ext = src.suffix.lower()
+    try:
+        irmaos = [p for p in src.parent.iterdir()
+                  if p.is_file() and p.stem == src.stem
+                  and p.suffix.lower() in COMIC_EXTS and p.suffix.lower() != ext]
+    except OSError:
+        irmaos = []
+    if irmaos:
+        return f'{src.stem} ({ext.lstrip(".")}).epub'
+    return src.stem + '.epub'
 
 
 # ── Extração de imagens ───────────────────────────────────────────────────────
@@ -230,11 +253,16 @@ def _extract_cbr(path: Path) -> Iterator[tuple[str, bytes]]:
 def _extract_cb7(path: Path) -> Iterator[tuple[str, bytes]]:
     if not SEVENZ_OK:
         raise RuntimeError('Suporte CB7 requer: pip install py7zr')
-    with py7zr.SevenZipFile(path, mode='r') as z:
-        names = sorted([n for n in z.getnames() if _is_image(n)], key=_natural_key)
-        data = z.read(names)
+    # Extrai para uma pasta temporária e lê página a página: z.read() devolveria
+    # todas as imagens de uma vez na memória.
+    with _tempfile.TemporaryDirectory(prefix='cb7_') as tmp:
+        with py7zr.SevenZipFile(path, mode='r') as z:
+            names = sorted([n for n in z.getnames() if _is_image(n)], key=_natural_key)
+            if not names:
+                raise RuntimeError('Nenhuma imagem encontrada dentro do CB7')
+            z.extract(path=tmp, targets=names)
         for name in names:
-            yield name, data[name].read()
+            yield name, (Path(tmp) / name).read_bytes()
 
 
 def extract_images(path: Path) -> Iterator[tuple[str, bytes]]:
@@ -517,8 +545,9 @@ def _build_opf(title: str, uid: str, n: int, manga: bool, meta: dict | None = No
     direction = 'rtl' if manga else 'ltr'
     # Nomes de quadrinhos costumam trazer & e < — sem escape o OPF vira XML inválido
     title = html.escape(title, quote=False)
-    idioma = meta.get('language') or ('ja' if manga else 'pt')
+    idioma = html.escape(meta.get('language') or ('ja' if manga else 'pt'), quote=False)
     extra = _meta_extra(meta)
+    modificado = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
     # Primeira imagem é a capa (cover-image) — necessário para o Kindle gerar thumbnail
     manifest_img   = (
         '<item id="img0000" href="Images/page0000.jpg" media-type="image/jpeg" properties="cover-image"/>\n    '
@@ -538,12 +567,14 @@ def _build_opf(title: str, uid: str, n: int, manga: bool, meta: dict | None = No
     <dc:identifier id="BookId">{uid}</dc:identifier>
     <dc:title>{title}</dc:title>
     <dc:language>{idioma}</dc:language>{extra}
+    <meta property="dcterms:modified">{modificado}</meta>
     <meta name="cover" content="img0000"/>
     <meta property="rendition:layout">pre-paginated</meta>
     <meta property="rendition:orientation">auto</meta>
     <meta property="rendition:spread">auto</meta>
   </metadata>
   <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
     {manifest_img}
     {manifest_xhtml}
   </manifest>
@@ -551,6 +582,26 @@ def _build_opf(title: str, uid: str, n: int, manga: bool, meta: dict | None = No
     {spine}
   </spine>
 </package>'''
+
+
+def _build_nav(title: str) -> str:
+    """Documento de navegação exigido pelo EPUB 3 (índice com uma entrada: o início)."""
+    titulo = html.escape(title, quote=False)
+    return f'''\
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head>
+  <title>{titulo}</title>
+</head>
+<body>
+  <nav epub:type="toc" id="toc">
+    <ol>
+      <li><a href="Text/page0000.xhtml">{titulo}</a></li>
+    </ol>
+  </nav>
+</body>
+</html>'''
 
 
 def _build_xhtml(idx: int, vp_w: int, vp_h: int) -> str:
@@ -613,6 +664,7 @@ def build_epub(pages: Iterator[tuple[bytes, int, int]], title: str,
                 raise EmptyBookError('Nenhuma imagem válida encontrada no arquivo')
 
             # o OPF vai por último porque só agora sabemos o total de páginas
+            epub.writestr('OEBPS/nav.xhtml', _build_nav(title))
             epub.writestr('OEBPS/content.opf', _build_opf(title, uid, n, manga, meta))
 
         os.replace(tmp_path, out_path)      # substituição atômica
@@ -663,7 +715,7 @@ def convert(fp: str, output_dir: str, params: dict) -> dict:
     manga      = bool(params.get('manga', False))
 
     out_dir  = Path(output_dir) if output_dir and os.path.isdir(output_dir) else src.parent
-    out_path = out_dir / (src.stem + '.epub')
+    out_path = out_dir / epub_name(src)
 
     # metadados internos, quando existirem, mandam no título e na série
     meta = read_comicinfo(src) if params.get('use_metadata', True) else {}
