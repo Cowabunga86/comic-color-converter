@@ -1,6 +1,17 @@
 # Histórico de versões
 
-## Não lançado
+## 1.3.0 — 26/10/2026
+
+### Correções
+
+- EPUBs de mesmo nome (`Vol 1.cbz` e `Vol 1.pdf`) não se sobrescrevem mais: a
+  extensão entra no nome do arquivo quando há conflito
+- O EPUB agora inclui o documento de navegação (`nav.xhtml`) e `dcterms:modified`,
+  exigidos pelo EPUB 3
+- O idioma lido do ComicInfo é escapado no OPF
+- CB7 é lido página a página, sem carregar o volume inteiro na memória
+- O navegador só abre depois que o servidor sobe; se a porta já estiver em uso, o
+  app abre a instância existente
 
 ### Instalador para macOS
 
