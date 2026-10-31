@@ -39,7 +39,7 @@ source venv/bin/activate
 
 echo "→ Garantindo dependências do projeto instaladas..."
 pip install --quiet --upgrade pip
-pip install --quiet -r requirements.txt
+pip install --quiet -r requirements.txt py7zr   # py7zr: suporte a CB7 dentro do .app
 
 echo "→ Instalando PyInstaller (se ainda não estiver no venv)..."
 pip install --quiet --upgrade pyinstaller

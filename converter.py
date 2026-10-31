@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Iterator
 from uuid import uuid4
 
-VERSION = '1.3.0'
+VERSION = '1.3.1'
 
 # ── Dependências opcionais ────────────────────────────────────────────────────
 try:
@@ -35,16 +35,35 @@ except ImportError:
 
 import shutil as _shutil
 import subprocess as _subprocess
+import sys as _sys
 import tempfile as _tempfile
+
+
+def _program_dirs() -> list[Path]:
+    """
+    Pastas onde procurar extratores (7-Zip, unrar) que acompanham o programa.
+
+    Rodando pelo Python, é só a pasta do script. Empacotado pelo PyInstaller, são
+    duas: a pasta do executável (onde o usuário do .exe portátil do Windows coloca
+    o 7z.exe/unrar.exe) e a pasta interna do pacote, _MEIPASS (onde o .app do
+    macOS traz o 7zz embutido).
+    """
+    if getattr(_sys, 'frozen', False):
+        dirs = [Path(_sys.executable).parent]
+        meipass = getattr(_sys, '_MEIPASS', None)
+        if meipass and Path(meipass) not in dirs:
+            dirs.append(Path(meipass))
+        return dirs
+    return [Path(__file__).parent]
 
 
 def _find_unrar() -> str | None:
     """Procura o unrar na pasta do programa, no WinRAR instalado ou no PATH."""
-    here = Path(__file__).parent
-    for name in ('unrar.exe', 'UnRAR.exe', 'unrar'):
-        p = here / name
-        if p.is_file():
-            return str(p)
+    for here in _program_dirs():
+        for name in ('unrar.exe', 'UnRAR.exe', 'unrar'):
+            p = here / name
+            if p.is_file():
+                return str(p)
 
     # WinRAR instalado no Windows já traz o UnRAR.exe
     for p_str in (r'C:\Program Files\WinRAR\UnRAR.exe',
@@ -58,11 +77,11 @@ def _find_unrar() -> str | None:
 def _find_7z() -> str | None:
     """Procura o 7-Zip na pasta do programa, nos caminhos padrão do Windows,
     do Homebrew (que instala o binário como `7zz`, não `7z`) ou no PATH."""
-    here = Path(__file__).parent
-    for name in ('7z.exe', '7z', '7zz'):
-        p = here / name
-        if p.is_file():
-            return str(p)
+    for here in _program_dirs():
+        for name in ('7z.exe', '7z', '7zz'):
+            p = here / name
+            if p.is_file():
+                return str(p)
     for p_str in (r'C:\Program Files\7-Zip\7z.exe',
                   r'C:\Program Files (x86)\7-Zip\7z.exe',
                   '/opt/homebrew/bin/7zz',   # Homebrew (Apple Silicon)
@@ -497,7 +516,7 @@ class EmptyBookError(RuntimeError):
 
 _CONTAINER = '''\
 <?xml version="1.0" encoding="UTF-8"?>
-<container version="1.0" xmlns="urn:oasis:schemas:container">
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
   <rootfiles>
     <rootfile full-path="OEBPS/content.opf"
               media-type="application/oebps-package+xml"/>

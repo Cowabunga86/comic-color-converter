@@ -46,3 +46,6 @@ assets/7zz
 # Configuração local de ferramentas
 .mcp.json
 .codex/
+
+# Build do Windows (gerado por build_windows.bat)
+ComicColorConverter.exe

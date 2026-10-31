@@ -7,6 +7,16 @@ from flask import Flask, render_template, jsonify, request, Response
 import threading, os, json, uuid, queue, sys, subprocess
 from pathlib import Path
 
+# O console do .exe no Windows usa o codepage do sistema (cp1252), que não tem
+# caracteres como '◆' — força UTF-8 para não derrubar o print de abertura.
+# No .app do macOS (sem console) stdout/stderr podem ser None.
+for _stream in (sys.stdout, sys.stderr):
+    if _stream is not None and hasattr(_stream, 'reconfigure'):
+        try:
+            _stream.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+
 # ── Conversor próprio ──────────────────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent))
 from converter import (convert as _do_convert, PROFILES, VERSION as CONVERTER_VERSION,
@@ -57,15 +67,44 @@ def _block_foreign_requests():
 
 # ── Preferências persistentes ──────────────────────────────────────────────────
 
+def _is_writable(d: Path) -> bool:
+    """Testa de verdade se dá para criar arquivo na pasta (permissões no Windows
+    nem sempre aparecem em os.access)."""
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+        probe = d / f'.write_test_{os.getpid()}'
+        probe.write_text('', encoding='utf-8')
+        probe.unlink()
+        return True
+    except Exception:
+        return False
+
+
 def _settings_dir() -> Path:
-    """Pasta gravável para preferências. Dentro de um .app empacotado (PyInstaller)
-    a pasta do programa não é um lugar confiável para escrever, então usamos
-    a pasta padrão de dados do usuário no macOS."""
-    if getattr(sys, 'frozen', False):
+    """Pasta gravável para as preferências.
+
+    - Rodando pelo Python: a pasta do script.
+    - .app do macOS: ~/Library/Application Support/Comic Color Converter
+      (o pacote .app não é lugar para gravar).
+    - .exe do Windows: ao lado do executável, para o programa continuar portátil
+      (pendrive, pasta qualquer). Se essa pasta não aceitar gravação — por
+      exemplo, dentro de Arquivos de Programas —, usa %APPDATA%.
+    """
+    if not getattr(sys, 'frozen', False):
+        return Path(__file__).parent
+
+    if sys.platform == 'darwin':
         d = Path.home() / 'Library' / 'Application Support' / 'Comic Color Converter'
         d.mkdir(parents=True, exist_ok=True)
         return d
-    return Path(__file__).parent
+
+    exe_dir = Path(sys.executable).parent
+    if _is_writable(exe_dir):
+        return exe_dir
+    base = os.environ.get('APPDATA') or str(Path.home() / 'AppData' / 'Roaming')
+    d = Path(base) / 'Comic Color Converter'
+    d.mkdir(parents=True, exist_ok=True)
+    return d
 
 
 SETTINGS_FILE = _settings_dir() / 'settings.json'

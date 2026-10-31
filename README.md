@@ -71,6 +71,20 @@ O programa lembra a última pasta e os ajustes, então nas próximas vezes ele j
 
 ![Modo galeria](screenshot-galeria.png)
 
+## Programa pronto, sem Python
+
+### Windows — `.exe` portátil
+
+Dê dois cliques em **`build_windows.bat`** (precisa do Python instalado só na máquina onde o build é feito). O resultado é `dist\ComicColorConverter.exe`, um arquivo único de ~50 MB que roda em qualquer Windows sem instalar nada — pode ir para qualquer pasta ou pendrive.
+
+- As preferências (`settings.json`) ficam ao lado do `.exe`. Se essa pasta não aceitar gravação (por exemplo, dentro de *Arquivos de Programas*), vão para `%APPDATA%\Comic Color Converter`.
+- Para CBR, o `.exe` usa o 7-Zip instalado, ou um `7z.exe` + `7z.dll` (ou `unrar.exe`) colocado na mesma pasta dele.
+- A janela de console que abre junto é o servidor: fechá-la encerra o programa.
+
+### macOS — `.app` e `.dmg`
+
+Rode `build_installer.sh` (ou dê dois cliques em `build_installer.command`). O passo a passo completo está em [LEIA-ME-INSTALADOR.md](LEIA-ME-INSTALADOR.md).
+
 ## Estrutura do projeto
 
 | Arquivo | Função |

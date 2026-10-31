@@ -1,5 +1,34 @@
 # Histórico de versões
 
+## 1.3.1 — 31/10/2026
+
+Une a versão 1.3.0 (instalador para macOS) com os ajustes que já faziam o `.exe`
+portátil funcionar no Windows. O mesmo código agora empacota certo nos dois sistemas.
+
+### Windows
+
+- Novo `build_windows.bat`: gera `dist\ComicColorConverter.exe` (arquivo único, sem
+  precisar de Python na máquina de destino), já com suporte a CB7 e ícone
+- No `.exe`, o `settings.json` fica ao lado do executável (portátil); se a pasta não
+  aceitar gravação, vai para `%APPDATA%\Comic Color Converter`. Antes, a 1.3.0
+  empacotada no Windows gravava num caminho de Mac (`~/Library/Application Support`)
+- O `7z.exe`/`unrar.exe` colocado ao lado do `.exe` volta a ser encontrado (a 1.3.0
+  procurava só na pasta temporária do PyInstaller)
+- O console do `.exe` usa UTF-8, então o aviso de abertura não derruba mais o programa
+  em Windows com codepage cp1252
+
+### EPUB
+
+- O `META-INF/container.xml` usava um namespace inválido
+  (`urn:oasis:schemas:container`); agora usa o oficial
+  (`urn:oasis:names:tc:opendocument:xmlns:container`). Os EPUBs gerados passam no
+  EPUBCheck sem erros
+
+### macOS
+
+- Sem mudança de comportamento: o `7zz` embutido no `.app` continua sendo achado, e
+  as preferências seguem em `~/Library/Application Support/Comic Color Converter`
+
 ## 1.3.0 — 26/10/2026
 
 ### Correções
