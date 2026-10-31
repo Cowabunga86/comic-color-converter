@@ -75,7 +75,7 @@ O programa lembra a última pasta e os ajustes, então nas próximas vezes ele j
 
 ### Windows — `.exe` portátil
 
-Dê dois cliques em **`build_windows.bat`** (precisa do Python instalado só na máquina onde o build é feito). O resultado é `dist\ComicColorConverter.exe`, um arquivo único de ~50 MB que roda em qualquer Windows sem instalar nada — pode ir para qualquer pasta ou pendrive.
+Dê dois cliques em **`build_windows.bat`** (precisa do Python instalado só na máquina onde o build é feito). O resultado é `dist\ComicColorConverter.exe`, um arquivo único de ~116 MB que roda em qualquer Windows sem instalar nada — pode ir para qualquer pasta ou pendrive.
 
 - As preferências (`settings.json`) ficam ao lado do `.exe`. Se essa pasta não aceitar gravação (por exemplo, dentro de *Arquivos de Programas*), vão para `%APPDATA%\Comic Color Converter`.
 - Para CBR, o `.exe` usa o 7-Zip instalado, ou um `7z.exe` + `7z.dll` (ou `unrar.exe`) colocado na mesma pasta dele.
