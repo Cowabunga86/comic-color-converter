@@ -1,6 +1,6 @@
 # Comic Color Converter
 
-Converte quadrinhos em **CBR, CBZ, CB7 e PDF** para **EPUB otimizado para o Kindle Colorsoft** — sem enviar nada para a nuvem e sem depender de ferramentas externas de conversão.
+Converte quadrinhos em **CBR, CBZ, CB7 e PDF** para **EPUB otimizado para o Kindle Colorsoft** — sem enviar nada para a nuvem e sem depender de serviços externos de conversão (CBR usa 7-Zip ou unrar).
 
 O motor é próprio, escrito em Python puro: redimensiona para a resolução exata da tela (1264×1680), detecta e divide páginas duplas, declara a capa corretamente para o Kindle gerar a miniatura na biblioteca, e grava um EPUB 3 *pre-paginated*. A interface roda no navegador, em `localhost`, com conversão em lote e acompanhamento em tempo real.
 
@@ -93,6 +93,10 @@ Rode `build_installer.sh` (ou dê dois cliques em `build_installer.command`). O 
 | `converter.py` | Motor de conversão — extrai, processa e monta o EPUB |
 | `templates/index.html` | Interface completa (HTML, CSS e JS em arquivo único) |
 | `requirements.txt` | Dependências Python |
+| `build_windows.bat` | Gera o `.exe` portátil do Windows |
+| `build_installer.sh` / `.command` | Gera o `.app` e o `.dmg` do macOS |
+| `assets/` | Ícone e instruções que acompanham o instalador |
+| `CHANGELOG.md` | Histórico de versões |
 | `settings.json` | Preferências salvas *(criado automaticamente)* |
 
 ## Notas técnicas
